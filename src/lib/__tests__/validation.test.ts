@@ -1,6 +1,7 @@
 import {
   validateEmail,
   validatePassword,
+  checkPasswordStrength,
   validateSignUp,
   validateSignIn,
   validateDisplayName,
@@ -30,6 +31,7 @@ describe("Validation & Auth Error Formatting", () => {
       expect(validateEmail("@domain.com").isValid).toBe(false);
       expect(validateEmail("user@domain").isValid).toBe(false);
       expect(validateEmail("1@gmail.com").isValid).toBe(false);
+      expect(validateEmail("1j@gmail.com").isValid).toBe(false);
       expect(validateEmail("12@gmail.com").isValid).toBe(false);
       expect(validateEmail("a@domain.com").isValid).toBe(false);
       expect(validateEmail(".user@domain.com").isValid).toBe(false);
@@ -37,10 +39,21 @@ describe("Validation & Auth Error Formatting", () => {
     });
   });
 
-  describe("validatePassword", () => {
-    it("accepts passwords with 8 or more characters", () => {
-      expect(validatePassword("secret123").isValid).toBe(true);
-      expect(validatePassword("12345678").isValid).toBe(true);
+  describe("validatePassword & checkPasswordStrength", () => {
+    it("accepts strong passwords with letters, numbers, and symbols", () => {
+      expect(validatePassword("Secret@123").isValid).toBe(true);
+      expect(validatePassword("Athlete#2026").isValid).toBe(true);
+    });
+
+    it("rejects weak sequential passwords like 12345678", () => {
+      const res = validatePassword("12345678");
+      expect(res.isValid).toBe(false);
+    });
+
+    it("rejects passwords missing numbers or symbols", () => {
+      expect(validatePassword("password").isValid).toBe(false);
+      expect(validatePassword("password123").isValid).toBe(false);
+      expect(validatePassword("Password!").isValid).toBe(false);
     });
 
     it("rejects empty or whitespace-only passwords", () => {
@@ -50,13 +63,13 @@ describe("Validation & Auth Error Formatting", () => {
     });
 
     it("rejects passwords shorter than 8 characters", () => {
-      const res = validatePassword("1234567");
+      const res = validatePassword("P@1pass");
       expect(res.isValid).toBe(false);
       expect(res.error).toBe("Password must be at least 8 characters long.");
     });
 
     it("rejects passwords longer than 72 characters", () => {
-      const longPass = "a".repeat(73);
+      const longPass = "Aa1@" + "a".repeat(70);
       const res = validatePassword(longPass);
       expect(res.isValid).toBe(false);
       expect(res.error).toBe("Password must not exceed 72 characters.");
@@ -67,8 +80,8 @@ describe("Validation & Auth Error Formatting", () => {
     it("validates successful sign up form", () => {
       const res = validateSignUp({
         email: "test@example.com",
-        password: "securepassword",
-        confirmPassword: "securepassword",
+        password: "Secret@123",
+        confirmPassword: "Secret@123",
         displayName: "Test User",
       });
       expect(res.isValid).toBe(true);
@@ -77,7 +90,7 @@ describe("Validation & Auth Error Formatting", () => {
     it("flags mismatched passwords", () => {
       const res = validateSignUp({
         email: "test@example.com",
-        password: "securepassword",
+        password: "Secret@123",
         confirmPassword: "differentpassword",
       });
       expect(res.isValid).toBe(false);
@@ -87,8 +100,8 @@ describe("Validation & Auth Error Formatting", () => {
     it("flags invalid email during signup", () => {
       const res = validateSignUp({
         email: "bademail",
-        password: "securepassword",
-        confirmPassword: "securepassword",
+        password: "Secret@123",
+        confirmPassword: "Secret@123",
       });
       expect(res.isValid).toBe(false);
       expect(res.error).toBe("Please enter a valid email address.");

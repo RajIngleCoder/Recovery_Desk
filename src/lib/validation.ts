@@ -24,16 +24,20 @@ export function validateEmail(email: string): ValidationResult {
 
   const [localPart, domainPart] = atParts;
 
-  // Local part checks: minimum 2 chars, max 64, no consecutive or boundary dots, reject single/double digits like 1@gmail.com
-  if (localPart.length < 2 || localPart.length > 64) {
+  // Local part checks:
+  // - Minimum 3 characters (rejects short/dummy test accounts like "1@", "1j@", "ab@")
+  // - Must start with a letter (rejects "1j@gmail.com", "9a@...")
+  // - Maximum 64 characters
+  // - No boundary or consecutive dots
+  if (localPart.length < 3 || localPart.length > 64) {
+    return { isValid: false, error: "Please enter a valid email address." };
+  }
+
+  if (!/^[a-zA-Z]/.test(localPart)) {
     return { isValid: false, error: "Please enter a valid email address." };
   }
 
   if (localPart.startsWith(".") || localPart.endsWith(".") || localPart.includes("..")) {
-    return { isValid: false, error: "Please enter a valid email address." };
-  }
-
-  if (/^\d{1,2}$/.test(localPart)) {
     return { isValid: false, error: "Please enter a valid email address." };
   }
 
@@ -49,30 +53,76 @@ export function validateEmail(email: string): ValidationResult {
   return { isValid: true };
 }
 
+
+export interface PasswordStrengthResult {
+  isValid: boolean;
+  hasMinLength: boolean;
+  hasLetter: boolean;
+  hasNumber: boolean;
+  hasSymbol: boolean;
+  isNotCommon: boolean;
+  error?: string;
+}
+
 /**
- * Validates password criteria (minimum 6 characters for MVP).
+ * Checks detailed password strength criteria:
+ * - At least 8 characters (max 72)
+ * - At least one letter
+ * - At least one number
+ * - At least one symbol
+ * - Not a common sequential password (e.g. 12345678, password)
+ */
+export function checkPasswordStrength(password: string): PasswordStrengthResult {
+  const p = password || "";
+  const hasMinLength = p.length >= 8 && p.length <= 72;
+  const hasLetter = /[a-zA-Z]/.test(p);
+  const hasNumber = /[0-9]/.test(p);
+  const hasSymbol = /[^a-zA-Z0-9\s]/.test(p);
+
+  const commonWeak = ["12345678", "password", "qwerty123", "123456789", "abcdefgh"];
+  const isNotCommon = !commonWeak.includes(p.toLowerCase());
+
+  let error: string | undefined;
+  if (!p || p.trim().length === 0) {
+    error = "Please enter your password.";
+  } else if (p.length < 8) {
+    error = "Password must be at least 8 characters long.";
+  } else if (p.length > 72) {
+    error = "Password must not exceed 72 characters.";
+  } else if (!hasLetter) {
+    error = "Password must include at least one letter (a-z, A-Z).";
+  } else if (!hasNumber) {
+    error = "Password must include at least one number (0-9).";
+  } else if (!hasSymbol) {
+    error = "Password must include at least one special symbol (e.g. !@#$%).";
+  } else if (!isNotCommon) {
+    error = "This password is too common. Please create a more secure password.";
+  }
+
+  const isValid = hasMinLength && hasLetter && hasNumber && hasSymbol && isNotCommon;
+
+  return {
+    isValid,
+    hasMinLength,
+    hasLetter,
+    hasNumber,
+    hasSymbol,
+    isNotCommon,
+    error,
+  };
+}
+
+/**
+ * Validates password criteria for new account creation.
  */
 export function validatePassword(password: string): ValidationResult {
-  if (!password || password.trim().length === 0) {
-    return { isValid: false, error: "Please enter your password." };
-  }
-
-  if (password.length < 8) {
-    return {
-      isValid: false,
-      error: "Password must be at least 8 characters long.",
-    };
-  }
-
-  if (password.length > 72) {
-    return {
-      isValid: false,
-      error: "Password must not exceed 72 characters.",
-    };
-  }
-
-  return { isValid: true };
+  const strength = checkPasswordStrength(password);
+  return {
+    isValid: strength.isValid,
+    error: strength.error,
+  };
 }
+
 
 /**
  * Validates complete Sign Up form.

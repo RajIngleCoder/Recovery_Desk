@@ -1,10 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { Screen, Card, AppButton, AppTextInput, BrandLogo } from "@/components/ui";
 import { colors, spacing, typography } from "@/constants";
 import { useAuth } from "@/hooks/useAuth";
-import { validateSignUp } from "@/lib/validation";
+import { validateSignUp, checkPasswordStrength } from "@/lib/validation";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const passwordStrength = checkPasswordStrength(password);
 
   const handleSignUp = async () => {
     const validation = validateSignUp({
@@ -99,7 +102,7 @@ export default function SignUpScreen() {
 
         <AppTextInput
           label="Password"
-          placeholder="At least 8 characters"
+          placeholder="Min 8 chars, numbers & symbols"
           isPassword
           autoCorrect={false}
           value={password}
@@ -109,17 +112,48 @@ export default function SignUpScreen() {
           }}
         />
         {password.length > 0 && (
-          <View style={styles.passwordFeedbackRow}>
-            <Text
-              style={[
-                styles.feedbackText,
-                password.length >= 8 ? styles.feedbackSuccess : styles.feedbackMuted,
-              ]}
-            >
-              {password.length >= 8
-                ? "✓ Minimum 8 characters met"
-                : `Must be at least 8 characters (${password.length}/8)`}
-            </Text>
+          <View style={styles.passwordCriteriaContainer}>
+            <Text style={styles.criteriaTitle}>Password requirements:</Text>
+            <View style={styles.criteriaRow}>
+              <Ionicons
+                name={passwordStrength.hasMinLength ? "checkmark-circle" : "ellipse-outline"}
+                size={14}
+                color={passwordStrength.hasMinLength ? colors.push : colors.textMuted}
+              />
+              <Text style={[styles.criteriaText, passwordStrength.hasMinLength && styles.criteriaTextMet]}>
+                At least 8 characters
+              </Text>
+            </View>
+            <View style={styles.criteriaRow}>
+              <Ionicons
+                name={passwordStrength.hasLetter ? "checkmark-circle" : "ellipse-outline"}
+                size={14}
+                color={passwordStrength.hasLetter ? colors.push : colors.textMuted}
+              />
+              <Text style={[styles.criteriaText, passwordStrength.hasLetter && styles.criteriaTextMet]}>
+                At least one letter (a-z, A-Z)
+              </Text>
+            </View>
+            <View style={styles.criteriaRow}>
+              <Ionicons
+                name={passwordStrength.hasNumber ? "checkmark-circle" : "ellipse-outline"}
+                size={14}
+                color={passwordStrength.hasNumber ? colors.push : colors.textMuted}
+              />
+              <Text style={[styles.criteriaText, passwordStrength.hasNumber && styles.criteriaTextMet]}>
+                At least one number (0-9)
+              </Text>
+            </View>
+            <View style={styles.criteriaRow}>
+              <Ionicons
+                name={passwordStrength.hasSymbol ? "checkmark-circle" : "ellipse-outline"}
+                size={14}
+                color={passwordStrength.hasSymbol ? colors.push : colors.textMuted}
+              />
+              <Text style={[styles.criteriaText, passwordStrength.hasSymbol && styles.criteriaTextMet]}>
+                At least one symbol (!@#$%...)
+              </Text>
+            </View>
           </View>
         )}
 
@@ -139,14 +173,16 @@ export default function SignUpScreen() {
             <Text
               style={[
                 styles.feedbackText,
-                password === confirmPassword && password.length >= 8
+                password === confirmPassword && passwordStrength.isValid
                   ? styles.feedbackSuccess
                   : styles.feedbackError,
               ]}
             >
-              {password === confirmPassword && password.length >= 8
+              {password === confirmPassword && passwordStrength.isValid
                 ? "✓ Passwords match"
-                : "Passwords do not match"}
+                : password !== confirmPassword
+                ? "Passwords do not match"
+                : "Complete all password requirements above"}
             </Text>
           </View>
         )}
@@ -248,6 +284,35 @@ const styles = StyleSheet.create({
   successText: {
     color: colors.success,
     fontSize: typography.sizes.sm,
+  },
+  passwordCriteriaContainer: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing.sm,
+    marginTop: -spacing.xs,
+    marginBottom: spacing.base,
+    gap: 4,
+  },
+  criteriaTitle: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  criteriaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  criteriaText: {
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+  },
+  criteriaTextMet: {
+    color: colors.textPrimary,
+    fontWeight: typography.weights.medium,
   },
   passwordFeedbackRow: {
     marginTop: -spacing.xs,
