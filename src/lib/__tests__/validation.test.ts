@@ -22,30 +22,35 @@ describe("Validation & Auth Error Formatting", () => {
       expect(res.error).toBe("Please enter your email address.");
     });
 
-    it("rejects malformed email addresses", () => {
+    it("rejects malformed email addresses and dummy single-character accounts", () => {
       expect(validateEmail("invalid-email").isValid).toBe(false);
       expect(validateEmail("user@").isValid).toBe(false);
       expect(validateEmail("@domain.com").isValid).toBe(false);
       expect(validateEmail("user@domain").isValid).toBe(false);
+      expect(validateEmail("1@gmail.com").isValid).toBe(false);
+      expect(validateEmail("12@gmail.com").isValid).toBe(false);
+      expect(validateEmail("a@domain.com").isValid).toBe(false);
+      expect(validateEmail(".user@domain.com").isValid).toBe(false);
+      expect(validateEmail("user..name@domain.com").isValid).toBe(false);
     });
   });
 
   describe("validatePassword", () => {
-    it("accepts passwords with 6 or more characters", () => {
+    it("accepts passwords with 8 or more characters", () => {
       expect(validatePassword("secret123").isValid).toBe(true);
-      expect(validatePassword("123456").isValid).toBe(true);
+      expect(validatePassword("12345678").isValid).toBe(true);
     });
 
-    it("rejects empty passwords", () => {
-      const res = validatePassword("");
-      expect(res.isValid).toBe(false);
-      expect(res.error).toBe("Please enter your password.");
+    it("rejects empty or whitespace-only passwords", () => {
+      expect(validatePassword("").isValid).toBe(false);
+      expect(validatePassword("        ").isValid).toBe(false);
+      expect(validatePassword("").error).toBe("Please enter your password.");
     });
 
-    it("rejects passwords shorter than 6 characters", () => {
-      const res = validatePassword("12345");
+    it("rejects passwords shorter than 8 characters", () => {
+      const res = validatePassword("1234567");
       expect(res.isValid).toBe(false);
-      expect(res.error).toBe("Password must be at least 6 characters long.");
+      expect(res.error).toBe("Password must be at least 8 characters long.");
     });
 
     it("rejects passwords longer than 72 characters", () => {

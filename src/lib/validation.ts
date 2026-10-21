@@ -11,13 +11,37 @@ export interface ValidationResult {
  * Validates email format according to standard RFC 5322 regex.
  */
 export function validateEmail(email: string): ValidationResult {
-  const trimmed = email.trim();
+  const trimmed = email ? email.trim() : "";
   if (!trimmed) {
     return { isValid: false, error: "Please enter your email address." };
   }
 
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  if (!emailRegex.test(trimmed)) {
+  const atParts = trimmed.split("@");
+  if (atParts.length !== 2) {
+    return { isValid: false, error: "Please enter a valid email address." };
+  }
+
+  const [localPart, domainPart] = atParts;
+
+  // Local part checks: minimum 2 chars, max 64, no consecutive or boundary dots, reject single/double digits like 1@gmail.com
+  if (localPart.length < 2 || localPart.length > 64) {
+    return { isValid: false, error: "Please enter a valid email address." };
+  }
+
+  if (localPart.startsWith(".") || localPart.endsWith(".") || localPart.includes("..")) {
+    return { isValid: false, error: "Please enter a valid email address." };
+  }
+
+  if (/^\d{1,2}$/.test(localPart)) {
+    return { isValid: false, error: "Please enter a valid email address." };
+  }
+
+  if (!/^[a-zA-Z0-9._%+-]+$/.test(localPart)) {
+    return { isValid: false, error: "Please enter a valid email address." };
+  }
+
+  const domainRegex = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  if (!domainRegex.test(domainPart)) {
     return { isValid: false, error: "Please enter a valid email address." };
   }
 
@@ -28,14 +52,14 @@ export function validateEmail(email: string): ValidationResult {
  * Validates password criteria (minimum 6 characters for MVP).
  */
 export function validatePassword(password: string): ValidationResult {
-  if (!password) {
+  if (!password || password.trim().length === 0) {
     return { isValid: false, error: "Please enter your password." };
   }
 
-  if (password.length < 6) {
+  if (password.length < 8) {
     return {
       isValid: false,
-      error: "Password must be at least 6 characters long.",
+      error: "Password must be at least 8 characters long.",
     };
   }
 
@@ -157,7 +181,7 @@ export function formatAuthError(error: unknown): string {
   }
 
   if (lower.includes("password should be at least")) {
-    return "Password must be at least 6 characters long.";
+    return "Password must be at least 8 characters long.";
   }
 
   if (lower.includes("email not confirmed")) {

@@ -57,6 +57,7 @@ export default function SignInScreen() {
           placeholder="you@yourinbox.com"
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
           value={email}
           onChangeText={(text) => {
             setEmail(text);

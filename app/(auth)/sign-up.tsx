@@ -89,6 +89,7 @@ export default function SignUpScreen() {
           placeholder="you@yourinbox.com"
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
           value={email}
           onChangeText={(text) => {
             setEmail(text);
@@ -98,7 +99,7 @@ export default function SignUpScreen() {
 
         <AppTextInput
           label="Password"
-          placeholder="At least 6 characters"
+          placeholder="At least 8 characters"
           isPassword
           value={password}
           onChangeText={(text) => {

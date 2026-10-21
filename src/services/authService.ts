@@ -26,7 +26,7 @@ export const authService = {
   async signUp(email: string, password: string, displayName?: string): Promise<AuthResponse> {
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
         options: {
           data: {
@@ -52,7 +52,7 @@ export const authService = {
   async signIn(email: string, password: string): Promise<AuthResponse> {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
       });
 
@@ -86,7 +86,7 @@ export const authService = {
 
   async resetPassword(email: string): Promise<{ error?: string }> {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
       if (error) {
         return { error: formatAuthError(error) };
       }
