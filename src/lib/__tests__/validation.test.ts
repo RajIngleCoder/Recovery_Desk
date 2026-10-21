@@ -3,6 +3,8 @@ import {
   validatePassword,
   validateSignUp,
   validateSignIn,
+  validateDisplayName,
+  validateOnboarding,
   formatAuthError,
   validateDailyMetricsInput,
   formatDailyMetricsError,
@@ -145,6 +147,48 @@ describe("Validation & Auth Error Formatting", () => {
     });
   });
 
+
+  describe("validateDisplayName", () => {
+    it("accepts valid names", () => {
+      expect(validateDisplayName("Sarah").isValid).toBe(true);
+      expect(validateDisplayName("Runner 01").isValid).toBe(true);
+      expect(validateDisplayName("").isValid).toBe(true); // optional
+      expect(validateDisplayName(undefined).isValid).toBe(true);
+    });
+
+    it("rejects names with fewer than 2 alphanumeric characters", () => {
+      expect(validateDisplayName("A").isValid).toBe(false);
+      expect(validateDisplayName("!").isValid).toBe(false);
+      expect(validateDisplayName("   ").isValid).toBe(false);
+    });
+
+    it("rejects names containing only zero-width or invisible spaces", () => {
+      const res = validateDisplayName("​‌‍﻿");
+      expect(res.isValid).toBe(false);
+      expect(res.error).toBe("Please enter a valid display name.");
+    });
+  });
+
+  describe("validateOnboarding - European comma decimal parsing", () => {
+    it("accepts comma decimal separator (7,5 -> 7.5 hours)", () => {
+      const res = validateOnboarding({
+        displayName: "Sarah",
+        goal: "training",
+        sleepTargetHours: "7,5",
+      });
+      expect(res.isValid).toBe(true);
+    });
+
+    it("rejects invalid display name in onboarding", () => {
+      const res = validateOnboarding({
+        displayName: "​",
+        goal: "training",
+        sleepTargetHours: "8.0",
+      });
+      expect(res.isValid).toBe(false);
+    });
+  });
+
   describe("validateDailyMetricsInput", () => {
     const today = "2026-09-21";
 
@@ -262,6 +306,20 @@ describe("Validation & Auth Error Formatting", () => {
         expect(result.sanitizedData?.sleep_hours).toBe(2.0);
       });
 
+      it("accepts European decimal comma in sleep hours (7,5 -> 7.5 hours)", () => {
+        const res = validateDailyMetricsInput(
+          {
+            date: "2026-03-01",
+            sleepHours: "7,5",
+            hrv: 60,
+            restingHr: 50,
+            activityLoad: "low",
+          },
+          today
+        );
+        expect(res.isValid).toBe(true);
+        expect(res.sanitizedData?.sleep_hours).toBe(7.5);
+      });
       it("accepts boundary values in hours + minutes format", () => {
         const result = validateDailyMetricsInput(
           {

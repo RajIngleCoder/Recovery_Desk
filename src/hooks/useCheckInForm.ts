@@ -275,6 +275,16 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
     );
   };
 
+  // Track if any metric has been filled
+  const isDirty = Boolean(
+    sleepHours !== "" ||
+    sleepMinutes !== "" ||
+    sleepScore !== "" ||
+    hrv !== "" ||
+    restingHr !== "" ||
+    notes.trim() !== ""
+  );
+
   return {
     selectedDate,
     todayDate,
@@ -286,15 +296,15 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
     showDatePickerModal,
     setShowDatePickerModal,
     sleepHours,
-    setSleepHours,
+    setSleepHours: (val: string) => setSleepHours(val.replace(",", ".")),
     sleepMinutes,
     setSleepMinutes,
     sleepScore,
-    setSleepScore,
+    setSleepScore: (val: string) => setSleepScore(val.replace(",", ".")),
     hrv,
-    setHrv,
+    setHrv: (val: string) => setHrv(val.replace(",", ".")),
     restingHr,
-    setRestingHr,
+    setRestingHr: (val: string) => setRestingHr(val.replace(",", ".")),
     activityLoad,
     setActivityLoad,
     notes,
@@ -303,6 +313,7 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
     clearFieldError,
     generalError,
     saveSuccess,
+    isDirty,
     isSubmitting,
     isDeleting,
     calculatedSleep,

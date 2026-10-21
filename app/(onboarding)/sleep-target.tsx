@@ -130,7 +130,8 @@ export default function OnboardingSleepTargetStep() {
           keyboardType="decimal-pad"
           value={sleepTarget}
           onChangeText={(text) => {
-            setSleepTarget(text);
+            const normalized = text.replace(",", ".");
+            setSleepTarget(normalized);
             if (error) setError(null);
           }}
           hint="Must be between 4.0 and 16.0 hours."

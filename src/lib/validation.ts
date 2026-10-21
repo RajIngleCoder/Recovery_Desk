@@ -1,3 +1,4 @@
+import { getTodayDateString } from "./date";
 /**
  * Validation rules and error formatting for Recovery Desk.
  */
@@ -76,6 +77,34 @@ export function validatePassword(password: string): ValidationResult {
 /**
  * Validates complete Sign Up form.
  */
+
+/**
+ * Sanitizes and validates a user display name.
+ * Requires at least 2 alphanumeric characters, strips zero-width spaces (​-‍, ﻿),
+ * and caps at 50 characters.
+ */
+export function validateDisplayName(name?: string): ValidationResult {
+  if (!name) return { isValid: true };
+  const sanitized = name.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+  if (sanitized.length === 0) {
+    return { isValid: false, error: "Please enter a valid display name." };
+  }
+  const alphaNumericMatches = sanitized.match(/[a-zA-Z0-9]/g);
+  if (!alphaNumericMatches || alphaNumericMatches.length < 2) {
+    return {
+      isValid: false,
+      error: "Display name must contain at least 2 letters or numbers.",
+    };
+  }
+  if (sanitized.length > 50) {
+    return {
+      isValid: false,
+      error: "Display name must not exceed 50 characters.",
+    };
+  }
+  return { isValid: true };
+}
+
 export function validateSignUp(data: {
   email: string;
   password: string;
@@ -92,11 +121,9 @@ export function validateSignUp(data: {
     return { isValid: false, error: "Passwords do not match." };
   }
 
-  if (data.displayName && data.displayName.trim().length > 50) {
-    return {
-      isValid: false,
-      error: "Display name must not exceed 50 characters.",
-    };
+  if (data.displayName) {
+    const nameVal = validateDisplayName(data.displayName);
+    if (!nameVal.isValid) return nameVal;
   }
 
   return { isValid: true };
@@ -127,23 +154,19 @@ export function validateOnboarding(data: {
   goal: string;
   sleepTargetHours: number | string;
 }): ValidationResult {
-  const name = data.displayName ? data.displayName.trim() : "";
-  if (!name) {
+  if (!data.displayName || !data.displayName.trim()) {
     return { isValid: false, error: "Please enter a display name." };
   }
-  if (name.length > 50) {
-    return { isValid: false, error: "Display name must not exceed 50 characters." };
-  }
+  const nameVal = validateDisplayName(data.displayName);
+  if (!nameVal.isValid) return nameVal;
 
   const validGoals = ["general", "training", "fitness"];
   if (!data.goal || !validGoals.includes(data.goal)) {
     return { isValid: false, error: "Please select a valid recovery goal." };
   }
 
-  const hours =
-    typeof data.sleepTargetHours === "number"
-      ? data.sleepTargetHours
-      : parseFloat(String(data.sleepTargetHours));
+  const rawHoursStr = String(data.sleepTargetHours ?? "").trim().replace(",", ".");
+  const hours = parseFloat(rawHoursStr);
 
   if (isNaN(hours) || hours < 4.0 || hours > 16.0) {
     return {
@@ -265,7 +288,7 @@ export function validateDailyMetricsInput(
     ) {
       errors.date = "Please enter a valid calendar date.";
     } else {
-      const today = currentDateStr || new Date().toISOString().slice(0, 10);
+      const today = currentDateStr || getTodayDateString();
       if (trimmedDate > today) {
         errors.date = "Check-in date cannot be in the future.";
       } else {
@@ -281,8 +304,8 @@ export function validateDailyMetricsInput(
 
   // 2. Sleep Validation
   let totalSleepHours = 0;
-  const hoursRaw = String(input.sleepHours ?? "").trim();
-  const minutesRaw = String(input.sleepMinutes ?? "").trim();
+  const hoursRaw = String(input.sleepHours ?? "").trim().replace(",", ".");
+  const minutesRaw = String(input.sleepMinutes ?? "").trim().replace(",", ".");
 
   if (!hoursRaw && !minutesRaw) {
     errors.sleep = "Please enter your sleep duration.";
@@ -291,7 +314,14 @@ export function validateDailyMetricsInput(
     const parsedHours = hoursRaw ? Number(hoursRaw) : 0;
     const parsedMinutes = minutesRaw ? Number(minutesRaw) : 0;
 
-    if (isNaN(parsedHours) || parsedHours < 0 || !Number.isInteger(parsedHours)) {
+    if (minutesRaw === "" && !Number.isInteger(parsedHours)) {
+      // User entered decimal sleep hours directly (e.g. 7.5 or 7,5)
+      if (isNaN(parsedHours) || parsedHours < 2.0 || parsedHours > 16.0) {
+        errors.sleep = "Please enter sleep duration between 2 and 16 hours.";
+      } else {
+        totalSleepHours = Math.round(parsedHours * 100) / 100;
+      }
+    } else if (isNaN(parsedHours) || parsedHours < 0 || !Number.isInteger(parsedHours)) {
       errors.sleep = "Sleep hours must be a whole number between 0 and 23.";
     } else if (parsedHours > 23) {
       errors.sleep = "Sleep hours cannot exceed 23 when specifying minutes.";
@@ -318,7 +348,7 @@ export function validateDailyMetricsInput(
       : "";
 
   if (scoreRaw !== "") {
-    const num = Number(scoreRaw);
+    const num = Number(scoreRaw.replace(",", "."));
     if (isNaN(num)) {
       errors.sleepScore = "Sleep score must be a number between 0 and 100.";
     } else if (num < 0 || num > 100) {
@@ -330,7 +360,7 @@ export function validateDailyMetricsInput(
 
   // 4. HRV Validation (Required)
   let parsedHrv = 0;
-  const hrvRaw = String(input.hrv ?? "").trim();
+  const hrvRaw = String(input.hrv ?? "").trim().replace(",", ".");
   if (!hrvRaw) {
     errors.hrv = "Please enter your morning HRV.";
   } else {
@@ -346,7 +376,7 @@ export function validateDailyMetricsInput(
 
   // 5. Resting HR Validation (Required)
   let parsedRestingHr = 0;
-  const rhrRaw = String(input.restingHr ?? "").trim();
+  const rhrRaw = String(input.restingHr ?? "").trim().replace(",", ".");
   if (!rhrRaw) {
     errors.restingHr = "Please enter your resting heart rate.";
   } else {

@@ -1,6 +1,7 @@
 export interface RouteGuardState {
   isLoading: boolean;
   hasSession: boolean;
+  isProfileLoaded?: boolean;
   onboardingCompleted: boolean;
   currentSegment: string; // e.g. "(auth)", "(onboarding)", "(app)", or empty
 }
@@ -25,6 +26,11 @@ export function getRouteRedirect(state: RouteGuardState): string | null {
   }
 
   // User has an active session
+  // If profile is not yet loaded (e.g. offline/network delay), do not prematurely redirect to onboarding
+  if (state.isProfileLoaded === false) {
+    return null;
+  }
+
   if (!state.onboardingCompleted) {
     if (!inOnboardingGroup) {
       return "/(onboarding)/welcome";

@@ -1,6 +1,7 @@
 import React from "react";
 import {
   StyleSheet,
+  Alert,
   View,
   Text,
   TouchableOpacity,
@@ -54,6 +55,7 @@ export default function CheckInScreen() {
     clearFieldError,
     generalError,
     saveSuccess,
+    isDirty,
     isSubmitting,
     isDeleting,
     calculatedSleep,
@@ -65,6 +67,21 @@ export default function CheckInScreen() {
     initialIdParam: params.id,
   });
 
+  const handleCancel = () => {
+    if (isDirty && !saveSuccess) {
+      Alert.alert(
+        "Discard Check-In?",
+        "You have unsaved recovery metrics. Are you sure you want to discard them?",
+        [
+          { text: "Keep Editing", style: "cancel" },
+          { text: "Discard", style: "destructive", onPress: () => router.back() },
+        ]
+      );
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <Screen>
       <KeyboardAvoidingView
@@ -73,7 +90,7 @@ export default function CheckInScreen() {
       >
         <View style={styles.navBar}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleCancel}
             style={styles.closeButton}
             accessibilityRole="button"
             accessibilityLabel="Cancel check-in"

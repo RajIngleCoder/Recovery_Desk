@@ -10,7 +10,7 @@ import { colors } from "@/constants";
 import { getRouteRedirect } from "@/features/auth/routeGuard";
 
 function RouteGuard({ children }: { children: React.ReactNode }) {
-  const { session, profile, isLoading } = useAuth();
+  const { session, profile, isLoading, isProfileLoaded } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -19,6 +19,7 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
     const redirectTarget = getRouteRedirect({
       isLoading,
       hasSession: Boolean(session),
+      isProfileLoaded: !session || isProfileLoaded,
       onboardingCompleted: Boolean(profile?.onboarding_completed),
       currentSegment,
     });
@@ -26,7 +27,7 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
     if (redirectTarget) {
       router.replace(redirectTarget as any);
     }
-  }, [session, profile, isLoading, segments, router]);
+  }, [session, profile, isLoading, isProfileLoaded, segments, router]);
 
   if (isLoading) {
     return (

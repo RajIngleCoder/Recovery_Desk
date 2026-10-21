@@ -24,6 +24,34 @@ export default function ProfileScreen() {
     ? `${profile.sleep_target_hours}h`
     : "8.0h";
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account & Health Data",
+      "Are you sure you want to permanently delete your Recovery Desk account and all associated metrics, baselines, and logs? This action is irreversible.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete My Account",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (user?.id) {
+                await profileService.deleteAccount(user.id);
+              }
+              await signOut();
+              Alert.alert(
+                "Account Deleted",
+                "Your account and personal recovery data have been successfully deleted."
+              );
+            } catch (err: any) {
+              Alert.alert("Error", err?.message || "Failed to complete account deletion.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <Screen scroll edges={["top", "left", "right"]}>
       <View style={styles.header}>
@@ -189,15 +217,15 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={[styles.legalRow, styles.noBorder]}
-          onPress={() => Linking.openURL("https://recovery-desk-10d85.web.app/delete-account")}
-          accessibilityRole="link"
-          accessibilityLabel="Open Account and Data Deletion"
+          onPress={handleDeleteAccount}
+          accessibilityRole="button"
+          accessibilityLabel="Delete Account and Data"
         >
           <View style={styles.legalLabelRow}>
             <Ionicons name="trash-outline" size={18} color={colors.error} />
             <Text style={[styles.legalLabel, { color: colors.error }]}>Delete Account & Data</Text>
           </View>
-          <Ionicons name="open-outline" size={16} color={colors.error} />
+          <Ionicons name="chevron-forward-outline" size={16} color={colors.error} />
         </TouchableOpacity>
       </Card>
 

@@ -101,23 +101,55 @@ export default function SignUpScreen() {
           label="Password"
           placeholder="At least 8 characters"
           isPassword
+          autoCorrect={false}
           value={password}
           onChangeText={(text) => {
             setPassword(text);
             if (errorMessage) setErrorMessage(null);
           }}
         />
+        {password.length > 0 && (
+          <View style={styles.passwordFeedbackRow}>
+            <Text
+              style={[
+                styles.feedbackText,
+                password.length >= 8 ? styles.feedbackSuccess : styles.feedbackMuted,
+              ]}
+            >
+              {password.length >= 8
+                ? "✓ Minimum 8 characters met"
+                : `Must be at least 8 characters (${password.length}/8)`}
+            </Text>
+          </View>
+        )}
 
         <AppTextInput
           label="Confirm password"
           placeholder="Re-enter your password"
           isPassword
+          autoCorrect={false}
           value={confirmPassword}
           onChangeText={(text) => {
             setConfirmPassword(text);
             if (errorMessage) setErrorMessage(null);
           }}
         />
+        {confirmPassword.length > 0 && (
+          <View style={styles.passwordFeedbackRow}>
+            <Text
+              style={[
+                styles.feedbackText,
+                password === confirmPassword && password.length >= 8
+                  ? styles.feedbackSuccess
+                  : styles.feedbackError,
+              ]}
+            >
+              {password === confirmPassword && password.length >= 8
+                ? "✓ Passwords match"
+                : "Passwords do not match"}
+            </Text>
+          </View>
+        )}
 
         <AppButton
           title="Create account"
@@ -216,6 +248,24 @@ const styles = StyleSheet.create({
   successText: {
     color: colors.success,
     fontSize: typography.sizes.sm,
+  },
+  passwordFeedbackRow: {
+    marginTop: -spacing.xs,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xxs,
+  },
+  feedbackText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+  },
+  feedbackSuccess: {
+    color: colors.push,
+  },
+  feedbackError: {
+    color: colors.error,
+  },
+  feedbackMuted: {
+    color: colors.textSecondary,
   },
   button: {
     marginTop: spacing.sm,

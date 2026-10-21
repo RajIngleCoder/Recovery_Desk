@@ -33,6 +33,18 @@ export function AppButton({
   accessibilityLabel,
 }: AppButtonProps) {
   const isDisabled = disabled || loading;
+  const lastPressRef = React.useRef<number>(0);
+
+  const handlePress = () => {
+    if (isDisabled) return;
+    const now = Date.now();
+    // 500ms debounce cooldown to prevent duplicate rapid multi-taps
+    if (now - lastPressRef.current < 500) {
+      return;
+    }
+    lastPressRef.current = now;
+    onPress();
+  };
 
   const getContainerStyle = (): ViewStyle => {
     switch (variant) {
@@ -86,7 +98,7 @@ export function AppButton({
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || title}

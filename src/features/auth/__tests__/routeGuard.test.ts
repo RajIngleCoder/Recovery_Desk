@@ -73,6 +73,16 @@ describe("Route Guard Protection Rules", () => {
       });
       expect(redirect).toBeNull();
     });
+    it("does not redirect when user has session but profile is still loading (isProfileLoaded: false)", () => {
+      const redirect = getRouteRedirect({
+        isLoading: false,
+        hasSession: true,
+        isProfileLoaded: false,
+        onboardingCompleted: false,
+        currentSegment: "(app)",
+      });
+      expect(redirect).toBeNull();
+    });
   });
 
   describe("Logged-in with completed onboarding", () => {

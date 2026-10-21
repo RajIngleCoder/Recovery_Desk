@@ -10,11 +10,22 @@ interface NotesSectionProps {
 }
 
 export function NotesSection({ notes, error, onChangeNotes }: NotesSectionProps) {
+  const isFull = notes.length >= 500;
+  const isNearLimit = notes.length >= 450;
+
   return (
     <>
       <View style={[styles.sectionHeaderRow, styles.marginTopLg]}>
         <Text style={styles.sectionHeading}>NOTES (OPTIONAL)</Text>
-        <Text style={styles.charCounter}>{notes.length}/500</Text>
+        <Text
+          style={[
+            styles.charCounter,
+            isNearLimit && styles.charCounterWarn,
+            isFull && styles.charCounterFull,
+          ]}
+        >
+          {notes.length}/500
+        </Text>
       </View>
       <AppTextInput
         placeholder="Any physical sensations, travel, soreness, or context..."
@@ -49,6 +60,14 @@ const styles = StyleSheet.create({
   charCounter: {
     fontSize: typography.sizes.xs,
     color: colors.textMuted,
+  },
+  charCounterWarn: {
+    color: colors.moderate,
+    fontWeight: typography.weights.semibold,
+  },
+  charCounterFull: {
+    color: colors.error,
+    fontWeight: typography.weights.bold,
   },
   notesInput: {
     minHeight: 80,

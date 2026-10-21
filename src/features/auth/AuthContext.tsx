@@ -30,6 +30,8 @@ interface AuthContextValue {
   user: User | null;
   profile: ProfileRow | null;
   isLoading: boolean;
+  isProfileLoaded: boolean;
+  profileError: string | null;
   signIn: (email: string, pass: string) => Promise<SignInResult>;
   signUp: (email: string, pass: string, displayName?: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
@@ -44,13 +46,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isProfileLoaded, setIsProfileLoaded] = useState<boolean>(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async (userId: string) => {
     try {
       const userProfile = await profileService.getProfile(userId);
       setProfile(userProfile);
-    } catch (err) {
+      setIsProfileLoaded(true);
+      setProfileError(null);
+    } catch (err: any) {
       console.warn("[AuthProvider] Error fetching profile:", err);
+      setProfileError(err?.message || "Failed to load profile");
     }
   }, []);
 
@@ -93,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await loadProfile(newSession.user.id);
       } else {
         setProfile(null);
+        setIsProfileLoaded(false);
       }
       setIsLoading(false);
     });
@@ -146,6 +154,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setUser(null);
       setProfile(null);
+      setIsProfileLoaded(false);
+      setProfileError(null);
     }
   };
 
@@ -160,6 +170,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         profile,
         isLoading,
+        isProfileLoaded,
+        profileError,
         signIn,
         signUp,
         signOut,
