@@ -1,9 +1,10 @@
 import React from "react";
-import { StyleSheet, View, Text, Switch, TouchableOpacity, Linking } from "react-native";
+import { StyleSheet, View, Text, Switch, TouchableOpacity, Linking, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen, Card, AppButton } from "@/components/ui";
 import { colors, radius, spacing, typography } from "@/constants";
 import { useAuth } from "@/hooks/useAuth";
+import { profileService } from "@/services/profileService";
 import { useDemoMode } from "@/features/demo/DemoContext";
 
 export default function ProfileScreen() {
@@ -35,13 +36,15 @@ export default function ProfileScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              if (user?.id) {
-                await profileService.deleteAccount(user.id);
+              const res = await profileService.deleteAccount();
+              if (res.error) {
+                Alert.alert("Error", res.error);
+                return;
               }
               await signOut();
               Alert.alert(
                 "Account Deleted",
-                "Your account and personal recovery data have been successfully deleted."
+                "Your account and personal recovery data have been permanently deleted."
               );
             } catch (err: any) {
               Alert.alert("Error", err?.message || "Failed to complete account deletion.");

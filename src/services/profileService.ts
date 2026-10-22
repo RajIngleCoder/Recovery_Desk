@@ -75,4 +75,21 @@ export const profileService = {
       };
     }
   },
+  async deleteAccount(): Promise<{ error?: string }> {
+    try {
+      // Calls Postgres RPC function running with SECURITY DEFINER
+      // Deletes user from auth.users WHERE id = auth.uid()
+      // Cascades automatically to profiles, daily_metrics, and recommendations
+      const { error } = await supabase.rpc("delete_user_account");
+      if (error) {
+        console.warn("[profileService] deleteAccount RPC error:", error.message);
+        return { error: error.message };
+      }
+      return {};
+    } catch (err: any) {
+      return {
+        error: err instanceof Error ? err.message : "Failed to delete account",
+      };
+    }
+  },
 };
