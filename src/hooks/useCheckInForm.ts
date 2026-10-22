@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +56,17 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
   const [activityLoad, setActivityLoad] = useState<ActivityLoadType>("moderate");
   const [notes, setNotes] = useState<string>("");
 
+  // Snapshot of loaded values to accurately detect unsaved changes
+  const initialSnapshotRef = useRef<{
+    sleepHours: string;
+    sleepMinutes: string;
+    sleepScore: string;
+    hrv: string;
+    restingHr: string;
+    activityLoad: ActivityLoadType;
+    notes: string;
+  } | null>(null);
+
   // Feedback & mutation states
   const [fieldErrors, setFieldErrors] = useState<DailyMetricsValidationErrors>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -80,26 +91,55 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
         if (existing) {
           setExistingEntryId(existing.id);
           const { hours, minutes } = decimalToHoursAndMinutes(existing.sleep_hours);
-          setSleepHours(String(hours));
-          setSleepMinutes(minutes > 0 ? String(minutes) : "0");
-          setSleepScore(
-            existing.sleep_score !== null ? String(existing.sleep_score) : ""
-          );
-          setHrv(String(existing.hrv));
-          setRestingHr(String(existing.resting_hr));
-          setActivityLoad(existing.activity_load);
-          setNotes(existing.notes || "");
+          const hStr = String(hours);
+          const mStr = minutes > 0 ? String(minutes) : "0";
+          const scoreStr = existing.sleep_score !== null ? String(existing.sleep_score) : "";
+          const hrvStr = String(existing.hrv);
+          const rhrStr = String(existing.resting_hr);
+          const loadVal = existing.activity_load;
+          const notesStr = existing.notes || "";
+
+          setSleepHours(hStr);
+          setSleepMinutes(mStr);
+          setSleepScore(scoreStr);
+          setHrv(hrvStr);
+          setRestingHr(rhrStr);
+          setActivityLoad(loadVal);
+          setNotes(notesStr);
+
+          initialSnapshotRef.current = {
+            sleepHours: hStr,
+            sleepMinutes: mStr,
+            sleepScore: scoreStr,
+            hrv: hrvStr,
+            restingHr: rhrStr,
+            activityLoad: loadVal,
+            notes: notesStr,
+          };
         } else {
           setExistingEntryId(null);
           const target = profile?.sleep_target_hours || 8;
           const { hours, minutes } = decimalToHoursAndMinutes(target);
-          setSleepHours(String(hours));
-          setSleepMinutes(minutes > 0 ? String(minutes) : "0");
+          const hStr = String(hours);
+          const mStr = minutes > 0 ? String(minutes) : "0";
+
+          setSleepHours(hStr);
+          setSleepMinutes(mStr);
           setSleepScore("");
           setHrv("");
           setRestingHr("");
           setActivityLoad("moderate");
           setNotes("");
+
+          initialSnapshotRef.current = {
+            sleepHours: hStr,
+            sleepMinutes: mStr,
+            sleepScore: "",
+            hrv: "",
+            restingHr: "",
+            activityLoad: "moderate",
+            notes: "",
+          };
         }
       } catch (err) {
         setGeneralError("Could not check existing records. Please try again.");
@@ -275,14 +315,17 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
     );
   };
 
-  // Track if any metric has been filled
+  // True if any value was modified compared to the initial loaded state
   const isDirty = Boolean(
-    sleepHours !== "" ||
-    sleepMinutes !== "" ||
-    sleepScore !== "" ||
-    hrv !== "" ||
-    restingHr !== "" ||
-    notes.trim() !== ""
+    initialSnapshotRef.current && (
+      sleepHours !== initialSnapshotRef.current.sleepHours ||
+      sleepMinutes !== initialSnapshotRef.current.sleepMinutes ||
+      sleepScore !== initialSnapshotRef.current.sleepScore ||
+      hrv !== initialSnapshotRef.current.hrv ||
+      restingHr !== initialSnapshotRef.current.restingHr ||
+      activityLoad !== initialSnapshotRef.current.activityLoad ||
+      notes.trim() !== initialSnapshotRef.current.notes.trim()
+    )
   );
 
   return {

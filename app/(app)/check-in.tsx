@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   StyleSheet,
   Alert,
+  BackHandler,
   View,
   Text,
   TouchableOpacity,
@@ -9,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { Screen, Card, AppButton, LoadingState } from "@/components/ui";
 import { colors, spacing, typography } from "@/constants";
 import { useCheckInForm } from "@/hooks/useCheckInForm";
@@ -67,16 +68,61 @@ export default function CheckInScreen() {
     initialIdParam: params.id,
   });
 
+  const navigation = useNavigation();
+
+  // Helper to show the discard warning popup
+  const promptDiscard = (onConfirm: () => void) => {
+    Alert.alert(
+      "Unsaved Changes",
+      "Are you sure you want to go back? Unsaved data will be lost.",
+      [
+        { text: "Keep Editing", style: "cancel" },
+        {
+          text: "Discard & Go Back",
+          style: "destructive",
+          onPress: onConfirm,
+        },
+      ]
+    );
+  };
+
+  // 1. Catch React Navigation transitions (iOS swipe-back gesture, tabs, etc.)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (!isDirty || saveSuccess) {
+        return;
+      }
+      e.preventDefault();
+      promptDiscard(() => {
+        navigation.dispatch(e.data.action);
+      });
+    });
+
+    return unsubscribe;
+  }, [navigation, isDirty, saveSuccess]);
+
+  // 2. Catch Android hardware back button and edge-swipe gesture
+  useEffect(() => {
+    const onBackPress = () => {
+      if (isDirty && !saveSuccess) {
+        promptDiscard(() => {
+          router.back();
+        });
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => subscription.remove();
+  }, [isDirty, saveSuccess, router]);
+
+  // 3. On-screen Cancel button
   const handleCancel = () => {
     if (isDirty && !saveSuccess) {
-      Alert.alert(
-        "Discard Check-In?",
-        "You have unsaved recovery metrics. Are you sure you want to discard them?",
-        [
-          { text: "Keep Editing", style: "cancel" },
-          { text: "Discard", style: "destructive", onPress: () => router.back() },
-        ]
-      );
+      promptDiscard(() => {
+        router.back();
+      });
     } else {
       router.back();
     }
