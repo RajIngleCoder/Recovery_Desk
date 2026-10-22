@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Text, Switch, TouchableOpacity, Linking, Alert } from "react-native";
+import { StyleSheet, View, Text, Switch, TouchableOpacity, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen, Card, AppButton, ConfirmModal } from "@/components/ui";
 import { colors, radius, spacing, typography } from "@/constants";
@@ -11,6 +11,7 @@ export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { isDemoMode, toggleDemoMode, demoProfile, demoScenario, setDemoScenario } = useDemoMode();
 
   const isDemoActive = Boolean(__DEV__ && isDemoMode);
@@ -28,22 +29,24 @@ export default function ProfileScreen() {
     : "8.0h";
 
   const handleDeleteAccount = () => {
+    setDeleteError(null);
     setShowDeleteModal(true);
   };
 
   const handleConfirmDeleteAccount = async () => {
     setIsDeletingAccount(true);
+    setDeleteError(null);
     try {
       const res = await profileService.deleteAccount();
       if (res.error) {
-        Alert.alert("Error", res.error);
+        setDeleteError(res.error);
         setIsDeletingAccount(false);
         return;
       }
       setShowDeleteModal(false);
       await signOut();
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to complete account deletion.");
+      setDeleteError(err?.message || "Failed to complete account deletion.");
       setIsDeletingAccount(false);
     }
   };

@@ -5,16 +5,15 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { Screen, Card, LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { Screen, Card, LoadingState, ErrorState, EmptyState, ConfirmModal } from "@/components/ui";
 import { colors, spacing } from "@/constants";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemoMode } from "@/features/demo/DemoContext";
 import { generateDemoMetrics } from "@/features/demo/demoData";
 import { recoveryService } from "@/services/recoveryService";
-import { getTodayDateString } from "@/lib/date";
+import { getTodayDateString, formatDisplayDate } from "@/lib/date";
 import { DailyMetricRow, RecommendationRow } from "@/types/database";
 import { HistoryEntryCard } from "@/components/history";
 
@@ -28,6 +27,7 @@ export default function HistoryScreen() {
   const { user } = useAuth();
   const { isDemoMode, demoScenario } = useDemoMode();
   const todayDate = getTodayDateString();
+  const [dateToDelete, setDateToDelete] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -103,33 +103,24 @@ export default function HistoryScreen() {
   }, [isDemoMode, demoScenario, loadHistory]);
 
   const handleDelete = (date: string) => {
-    Alert.alert(
-      "Delete Entry",
-      "Are you sure you want to remove this day's recovery log? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!user) return;
-            setIsDeleting(date);
-            try {
-              await recoveryService.deleteDailyMetricByDate(user.id, date);
-              setEntries((prev) =>
-                prev.filter((e) => e.metric.date !== date)
-              );
-              if (expandedDate === date) setExpandedDate(null);
-            } catch (err) {
-              console.warn("[HistoryScreen] Delete error:", err);
-              Alert.alert("Error", "Failed to delete the entry.");
-            } finally {
-              setIsDeleting(null);
-            }
-          },
-        },
-      ]
-    );
+    setDateToDelete(date);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!user || !dateToDelete) return;
+    const date = dateToDelete;
+    setIsDeleting(date);
+    try {
+      await recoveryService.deleteDailyMetricByDate(user.id, date);
+      setEntries((prev) => prev.filter((e) => e.metric.date !== date));
+      if (expandedDate === date) setExpandedDate(null);
+    } catch (err) {
+      console.warn("[HistoryScreen] Delete error:", err);
+      setError("Failed to delete the recovery entry. Please try again.");
+    } finally {
+      setIsDeleting(null);
+      setDateToDelete(null);
+    }
   };
 
   const toggleExpand = (date: string) => {
@@ -209,16 +200,20 @@ export default function HistoryScreen() {
       </ScrollView>
 
       <ConfirmModal
-        visible={Boolean(entryToDelete)}
-        title="Delete Check-In"
-        message={entryToDelete ? `Are you sure you want to delete your recovery log for ${formatDisplayDate(entryToDelete.dateStr)}? This will affect your baseline calculations.` : ""}
+        visible={Boolean(dateToDelete)}
+        title="Delete Entry"
+        message={
+          dateToDelete
+            ? `Are you sure you want to remove your recovery log for ${formatDisplayDate(dateToDelete)}? This action cannot be undone.`
+            : ""
+        }
         confirmText="Delete Entry"
         cancelText="Cancel"
         confirmVariant="danger"
         iconName="trash-outline"
-        loading={Boolean(deletingId)}
-        onConfirm={handleConfirmDeleteEntry}
-        onCancel={() => setEntryToDelete(null)}
+        loading={Boolean(isDeleting)}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => !isDeleting && setDateToDelete(null)}
       />
     </Screen>
   );

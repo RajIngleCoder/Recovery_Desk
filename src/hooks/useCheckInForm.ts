@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Alert } from "react-native";
+// native Alert removed in favor of branded ConfirmModal
 import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { recoveryService } from "@/services/recoveryService";
@@ -72,6 +72,7 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
   // Load existing metrics for the selected date
@@ -287,6 +288,7 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
       if (result.error) {
         setGeneralError(formatDailyMetricsError(result.error));
       } else {
+        setShowDeleteModal(false);
         router.back();
       }
     } catch (err) {
@@ -299,20 +301,7 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
   // Delete handler
   const handleDeleteConfirm = () => {
     if (!existingEntryId && !selectedDate) return;
-    Alert.alert(
-      "Delete Check-In",
-      `Are you sure you want to delete your recovery entry for ${formatDisplayDate(
-        selectedDate
-      )}? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete Entry",
-          style: "destructive",
-          onPress: performDelete,
-        },
-      ]
-    );
+    setShowDeleteModal(true);
   };
 
   // True if any value was modified compared to the initial loaded state
@@ -363,5 +352,8 @@ export function useCheckInForm(options?: UseCheckInFormOptions) {
     handleSelectDate,
     handleSubmit,
     handleDeleteConfirm,
+    showDeleteModal,
+    setShowDeleteModal,
+    performDelete,
   };
 }

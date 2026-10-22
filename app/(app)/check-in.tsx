@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
   StyleSheet,
-  Alert,
   BackHandler,
   View,
   Text,
@@ -14,6 +13,7 @@ import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { Screen, Card, AppButton, LoadingState, ConfirmModal } from "@/components/ui";
 import { colors, spacing, typography } from "@/constants";
 import { useCheckInForm } from "@/hooks/useCheckInForm";
+import { formatDisplayDate } from "@/lib/date";
 import {
   SleepSection,
   BiomarkersSection,
@@ -63,6 +63,9 @@ export default function CheckInScreen() {
     handleSelectDate,
     handleSubmit,
     handleDeleteConfirm,
+    showDeleteModal,
+    setShowDeleteModal,
+    performDelete,
   } = useCheckInForm({
     initialDateParam: params.date,
     initialIdParam: params.id,
@@ -250,6 +253,35 @@ export default function CheckInScreen() {
           pastDatesList={pastDatesList}
           onSelectDate={handleSelectDate}
           onClose={() => setShowDatePickerModal(false)}
+        />
+
+        <ConfirmModal
+          visible={showDiscardModal}
+          title="Unsaved Changes"
+          message="Are you sure you want to go back? Unsaved data will be lost."
+          confirmText="Discard & Go Back"
+          cancelText="Keep Editing"
+          confirmVariant="danger"
+          iconName="alert-circle-outline"
+          onConfirm={handleConfirmDiscard}
+          onCancel={() => setShowDiscardModal(false)}
+        />
+
+        <ConfirmModal
+          visible={showDeleteModal}
+          title="Delete Check-In"
+          message={
+            selectedDate
+              ? `Are you sure you want to delete your recovery entry for ${formatDisplayDate(selectedDate)}? This action cannot be undone.`
+              : "Are you sure you want to delete this recovery entry? This action cannot be undone."
+          }
+          confirmText="Delete Entry"
+          cancelText="Cancel"
+          confirmVariant="danger"
+          iconName="trash-outline"
+          loading={isDeleting}
+          onConfirm={performDelete}
+          onCancel={() => !isDeleting && setShowDeleteModal(false)}
         />
       </KeyboardAvoidingView>
     </Screen>
