@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   StyleSheet,
   Alert,
@@ -11,7 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
-import { Screen, Card, AppButton, LoadingState } from "@/components/ui";
+import { Screen, Card, AppButton, LoadingState, ConfirmModal } from "@/components/ui";
 import { colors, spacing, typography } from "@/constants";
 import { useCheckInForm } from "@/hooks/useCheckInForm";
 import {
@@ -69,45 +69,30 @@ export default function CheckInScreen() {
   });
 
   const navigation = useNavigation();
+  const [showDiscardModal, setShowDiscardModal] = useState<boolean>(false);
+  const isBypassingGuardRef = useRef<boolean>(false);
+  const pendingActionRef = useRef<any>(null);
 
-  // Helper to show the discard warning popup
-  const promptDiscard = (onConfirm: () => void) => {
-    Alert.alert(
-      "Unsaved Changes",
-      "Are you sure you want to go back? Unsaved data will be lost.",
-      [
-        { text: "Keep Editing", style: "cancel" },
-        {
-          text: "Discard & Go Back",
-          style: "destructive",
-          onPress: onConfirm,
-        },
-      ]
-    );
-  };
-
-  // 1. Catch React Navigation transitions (iOS swipe-back gesture, tabs, etc.)
+  // 1. Catch React Navigation transitions (iOS edge swipe, navigation actions)
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      if (!isDirty || saveSuccess) {
+      if (isBypassingGuardRef.current || !isDirty || saveSuccess) {
         return;
       }
       e.preventDefault();
-      promptDiscard(() => {
-        navigation.dispatch(e.data.action);
-      });
+      pendingActionRef.current = e.data.action;
+      setShowDiscardModal(true);
     });
 
     return unsubscribe;
   }, [navigation, isDirty, saveSuccess]);
 
-  // 2. Catch Android hardware back button and edge-swipe gesture
+  // 2. Catch Android hardware back button & system gesture back
   useEffect(() => {
     const onBackPress = () => {
-      if (isDirty && !saveSuccess) {
-        promptDiscard(() => {
-          router.back();
-        });
+      if (isDirty && !saveSuccess && !isBypassingGuardRef.current) {
+        pendingActionRef.current = null;
+        setShowDiscardModal(true);
         return true;
       }
       return false;
@@ -115,14 +100,24 @@ export default function CheckInScreen() {
 
     const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
     return () => subscription.remove();
-  }, [isDirty, saveSuccess, router]);
+  }, [isDirty, saveSuccess]);
 
   // 3. On-screen Cancel button
   const handleCancel = () => {
     if (isDirty && !saveSuccess) {
-      promptDiscard(() => {
-        router.back();
-      });
+      pendingActionRef.current = null;
+      setShowDiscardModal(true);
+    } else {
+      router.back();
+    }
+  };
+
+  // 4. Confirm discard: exit once cleanly with zero duplicate prompts
+  const handleConfirmDiscard = () => {
+    isBypassingGuardRef.current = true;
+    setShowDiscardModal(false);
+    if (pendingActionRef.current) {
+      navigation.dispatch(pendingActionRef.current);
     } else {
       router.back();
     }

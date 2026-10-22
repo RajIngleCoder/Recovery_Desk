@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, Text, Switch, TouchableOpacity, Linking, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Screen, Card, AppButton } from "@/components/ui";
+import { Screen, Card, AppButton, ConfirmModal } from "@/components/ui";
 import { colors, radius, spacing, typography } from "@/constants";
 import { useAuth } from "@/hooks/useAuth";
 import { profileService } from "@/services/profileService";
@@ -9,6 +9,8 @@ import { useDemoMode } from "@/features/demo/DemoContext";
 
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
   const { isDemoMode, toggleDemoMode, demoProfile, demoScenario, setDemoScenario } = useDemoMode();
 
   const isDemoActive = Boolean(__DEV__ && isDemoMode);
@@ -26,33 +28,24 @@ export default function ProfileScreen() {
     : "8.0h";
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account & Health Data",
-      "Are you sure you want to permanently delete your Recovery Desk account and all associated metrics, baselines, and logs? This action is irreversible.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete My Account",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const res = await profileService.deleteAccount();
-              if (res.error) {
-                Alert.alert("Error", res.error);
-                return;
-              }
-              await signOut();
-              Alert.alert(
-                "Account Deleted",
-                "Your account and personal recovery data have been permanently deleted."
-              );
-            } catch (err: any) {
-              Alert.alert("Error", err?.message || "Failed to complete account deletion.");
-            }
-          },
-        },
-      ]
-    );
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const res = await profileService.deleteAccount();
+      if (res.error) {
+        Alert.alert("Error", res.error);
+        setIsDeletingAccount(false);
+        return;
+      }
+      setShowDeleteModal(false);
+      await signOut();
+    } catch (err: any) {
+      Alert.alert("Error", err?.message || "Failed to complete account deletion.");
+      setIsDeletingAccount(false);
+    }
   };
 
   return (
@@ -248,6 +241,19 @@ export default function ProfileScreen() {
         variant="danger"
         onPress={signOut}
         style={styles.signOutButton}
+      />
+
+      <ConfirmModal
+        visible={showDeleteModal}
+        title="Delete Account & Data"
+        message="Are you sure you want to permanently delete your Recovery Desk account and all associated health metrics, baselines, and logs? This action is permanent and cannot be undone."
+        confirmText="Delete My Account"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        iconName="trash-outline"
+        loading={isDeletingAccount}
+        onConfirm={handleConfirmDeleteAccount}
+        onCancel={() => setShowDeleteModal(false)}
       />
     </Screen>
   );

@@ -207,6 +207,19 @@ export default function HistoryScreen() {
           </View>
         )}
       </ScrollView>
+
+      <ConfirmModal
+        visible={Boolean(entryToDelete)}
+        title="Delete Check-In"
+        message={entryToDelete ? `Are you sure you want to delete your recovery log for ${formatDisplayDate(entryToDelete.dateStr)}? This will affect your baseline calculations.` : ""}
+        confirmText="Delete Entry"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        iconName="trash-outline"
+        loading={Boolean(deletingId)}
+        onConfirm={handleConfirmDeleteEntry}
+        onCancel={() => setEntryToDelete(null)}
+      />
     </Screen>
   );
 }
