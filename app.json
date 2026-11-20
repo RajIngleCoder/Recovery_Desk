@@ -24,7 +24,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "splash": {
+        "backgroundColor": "#FAF7F2",
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain"
+      }
     },
     "web": {
       "bundler": "metro",
